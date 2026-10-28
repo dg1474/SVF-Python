@@ -1,0 +1,156 @@
+name: Test Pysvf RTTI and Non-RTTI Builds
+
+on:
+  push:
+    branches:
+      - main
+      - feat/**
+      - test/**
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  test-ubuntu-nortti:
+    name: Ubuntu 24.04 (Official Upstream LLVM - non-RTTI)
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout SVF-Python
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y git curl build-essential cmake g++ nodejs doxygen graphviz lcov libncurses-dev libtinfo6 libzstd-dev libffi-dev zlib1g-dev python3-dev python3-venv patchelf
+
+      - name: Clone SVF (PR 1936 non-RTTI branch)
+        run: |
+          git clone --branch feat/support-official-llvm-no-rtti https://github.com/dg1474/SVF.git SVF
+          cd SVF
+          git log -n 1 --oneline
+
+      - name: Build SVF with nortti
+        run: |
+          cd SVF
+          ./build.sh nortti
+          echo "SVF_DIR=$PWD" >> "$GITHUB_ENV"
+          echo "LLVM_DIR=$PWD/llvm-21.1.0.obj" >> "$GITHUB_ENV"
+          echo "Z3_DIR=$PWD/z3.obj" >> "$GITHUB_ENV"
+
+      - name: Build Pysvf Wheel
+        run: |
+          python3 -m venv .venv
+          source .venv/bin/activate
+          python -m pip install -U pip pybind11 setuptools wheel build
+          export PYBIND11_DIR=$(python -m pybind11 --cmakedir)
+          export SVF_DIR="$PWD/SVF"
+          export LLVM_DIR="$PWD/SVF/llvm-21.1.0.obj"
+          export Z3_DIR="$PWD/SVF/z3.obj"
+          python -m build --wheel
+          ls -la dist/
+
+      - name: Install Wheel & Run Tests
+        run: |
+          source .venv/bin/activate
+          pip install dist/*.whl
+          echo "=== Test import outside of repo root ==="
+          (cd /tmp && python -c "import pysvf; print('Successfully imported non-RTTI pysvf!'); print('Pysvf version:', pysvf.__file__)")
+          echo "=== Run test.py ==="
+          (cd test_cases && python test.py)
+          echo "=== Run test2.py ==="
+          (cd test_cases && python test2.py)
+
+  test-ubuntu-rtti:
+    name: Ubuntu 24.04 (Baseline Custom LLVM - RTTI ON)
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout SVF-Python
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y git curl build-essential cmake g++ nodejs doxygen graphviz lcov libncurses-dev libtinfo6 libzstd-dev libffi-dev zlib1g-dev python3-dev python3-venv patchelf
+
+      - name: Clone SVF (PR 1936 branch)
+        run: |
+          git clone --branch feat/support-official-llvm-no-rtti https://github.com/dg1474/SVF.git SVF
+          cd SVF
+          git log -n 1 --oneline
+
+      - name: Build SVF with rtti (custom prebuilt)
+        run: |
+          cd SVF
+          ./build.sh rtti
+          echo "SVF_DIR=$PWD" >> "$GITHUB_ENV"
+          echo "LLVM_DIR=$PWD/llvm-21.1.0.obj" >> "$GITHUB_ENV"
+          echo "Z3_DIR=$PWD/z3.obj" >> "$GITHUB_ENV"
+
+      - name: Build Pysvf Wheel
+        run: |
+          python3 -m venv .venv
+          source .venv/bin/activate
+          python -m pip install -U pip pybind11 setuptools wheel build
+          export PYBIND11_DIR=$(python -m pybind11 --cmakedir)
+          export SVF_DIR="$PWD/SVF"
+          export LLVM_DIR="$PWD/SVF/llvm-21.1.0.obj"
+          export Z3_DIR="$PWD/SVF/z3.obj"
+          python -m build --wheel
+          ls -la dist/
+
+      - name: Install Wheel & Run Tests
+        run: |
+          source .venv/bin/activate
+          pip install dist/*.whl
+          echo "=== Test import outside of repo root ==="
+          (cd /tmp && python -c "import pysvf; print('Successfully imported RTTI pysvf!'); print('Pysvf version:', pysvf.__file__)")
+          echo "=== Run test.py ==="
+          (cd test_cases && python test.py)
+          echo "=== Run test2.py ==="
+          (cd test_cases && python test2.py)
+
+  test-macos:
+    name: macOS 14 (Homebrew LLVM - RTTI ON)
+    runs-on: macos-14
+    steps:
+      - name: Checkout SVF-Python
+        uses: actions/checkout@v4
+
+      - name: Install system dependencies & LLVM 21
+        run: |
+          brew install git curl cmake node doxygen graphviz llvm@21
+          LLVM_PREFIX="$(brew --prefix llvm@21)"
+          echo "LLVM_DIR=$LLVM_PREFIX" >> "$GITHUB_ENV"
+          echo "PATH=$LLVM_PREFIX/bin:$PATH" >> "$GITHUB_ENV"
+
+      - name: Clone SVF (PR 1936 branch)
+        run: |
+          git clone --branch feat/support-official-llvm-no-rtti https://github.com/dg1474/SVF.git SVF
+          cd SVF
+          git log -n 1 --oneline
+
+      - name: Build SVF on macOS
+        run: |
+          cd SVF
+          ./build.sh
+          echo "SVF_DIR=$PWD" >> "$GITHUB_ENV"
+          echo "Z3_DIR=$PWD/z3.obj" >> "$GITHUB_ENV"
+
+      - name: Build & Test SVF-Python on macOS
+        run: |
+          python3 -m venv .venv
+          source .venv/bin/activate
+          python -m pip install -U pip pybind11 setuptools wheel build
+          export PYBIND11_DIR=$(python -m pybind11 --cmakedir)
+          export SVF_DIR="$PWD/SVF"
+          export LLVM_DIR="$LLVM_DIR"
+          export Z3_DIR="$PWD/SVF/z3.obj"
+          python -m build --wheel
+          ls -la dist/
+          pip install dist/*.whl
+          echo "=== Test import outside repo root ==="
+          (cd /tmp && python -c "import pysvf; print('Successfully imported pysvf on macOS!'); print('Pysvf path:', pysvf.__file__)")
+          echo "=== Run test.py ==="
+          (cd test_cases && python test.py)
+          (cd test_cases && python test2.py)

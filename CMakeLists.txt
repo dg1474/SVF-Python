@@ -39,9 +39,11 @@ message(STATUS "LLVM STATUS:
   Dynamic lib   ${LLVM_LINK_LLVM_DYLIB}"
 )
 
-# Ensure that LLVM was built with RTTI enabled
+# Support building with or without RTTI
 if(NOT LLVM_ENABLE_RTTI)
-    message(FATAL_ERROR "LLVM was not built with RTTI enabled. Please rebuild LLVM with -DLLVM_ENABLE_RTTI=ON.")
+    message(STATUS "LLVM RTTI is disabled; compiling pysvf with -fno-rtti")
+    add_compile_options("$<$<COMPILE_LANGUAGE:CXX>:-fno-rtti>")
+    add_compile_definitions(PYBIND11_NO_RTTI)
 endif()
 
 if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
@@ -49,7 +51,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
     set(CMAKE_BUILD_RPATH "@loader_path/SVF/z3.obj/bin;@loader_path/SVF/z3.obj/lib;@loader_path/SVF/Release-build/lib")
 elseif(CMAKE_SYSTEM_NAME STREQUAL "Linux")
     set(CMAKE_BUILD_RPATH_USE_ORIGIN ON)
-    set(CMAKE_BUILD_RPATH "$ORIGIN/SVF/z3.obj/bin;$ORIGIN/SVF/z3.obj/lib;$ORIGIN/SVF/Release-build/lib;")
+    set(CMAKE_BUILD_RPATH "$ORIGIN/SVF/z3.obj/bin;$ORIGIN/SVF/z3.obj/lib;$ORIGIN/SVF/Release-build/lib;$ORIGIN/SVF/llvm-21.1.0.obj/lib;$ORIGIN/SVF/llvm-21.1.0.obj/lib/x86_64-unknown-linux-gnu;$ORIGIN/SVF/llvm-21.1.0.obj/lib/aarch64-unknown-linux-gnu;")
 endif ()
 # Check if building in Debug mode vs. LLVM's build type
 if(CMAKE_BUILD_TYPE STREQUAL "Debug" AND NOT ${LLVM_BUILD_TYPE} STREQUAL "Debug")

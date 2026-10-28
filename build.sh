@@ -4,7 +4,8 @@
 if [ -z "$SVF_DIR" ] || [ ! -d "$SVF_DIR" ]; then
     git clone https://github.com/SVF-tools/SVF
     cd SVF
-    source build.sh
+    # shellcheck disable=SC1091
+    source build.sh "$@"
     cd ..
 else
     echo "SVF directory already exists. Skipping clone and build."
