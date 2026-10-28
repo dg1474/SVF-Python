@@ -33,9 +33,6 @@ jobs:
       - name: Build SVF with nortti
         run: |
           cd SVF
-          # Preserve SVF's own RTTI on SvfCore so downstream bindings (SVF-Python)
-          # have typeinfo, while SvfLLVM aligns with official non-RTTI LLVM
-          sed -i 's/-DSVF_ENABLE_RTTI:BOOL="$RTTI"/-DSVF_ENABLE_RTTI:BOOL=ON/' build.sh
           ./build.sh nortti
           echo "SVF_DIR=$PWD" >> "$GITHUB_ENV"
           echo "LLVM_DIR=$PWD/llvm-21.1.0.obj" >> "$GITHUB_ENV"
@@ -45,7 +42,8 @@ jobs:
         run: |
           python3 -m venv .venv
           source .venv/bin/activate
-          python -m pip install -U pip pybind11 setuptools wheel build
+          python -m pip install -U pip pybind11 setuptools wheel build notebook nbconvert nbclient ipykernel
+          python -m ipykernel install --user --name python3
           export PYBIND11_DIR=$(python -m pybind11 --cmakedir)
           export SVF_DIR="$PWD/SVF"
           export LLVM_DIR="$PWD/SVF/llvm-21.1.0.obj"
@@ -53,19 +51,26 @@ jobs:
           python -m build --wheel
           ls -la dist/
 
-      - name: Install Wheel & Run Tests
+      - name: Install Wheel & Run Full Test Suite
         run: |
           source .venv/bin/activate
           if [ -d "$LLVM_DIR/lib/x86_64-unknown-linux-gnu" ]; then
             export LD_LIBRARY_PATH="$LLVM_DIR/lib/x86_64-unknown-linux-gnu:${LD_LIBRARY_PATH:-}"
           fi
           pip install dist/*.whl
-          echo "=== Test import outside repo root ==="
+          echo "=== 1. Test import outside repo root ==="
           (cd /tmp && python -c "import pysvf; print('Successfully imported non-RTTI pysvf!'); print('Pysvf path:', pysvf.__file__)")
-          echo "=== Run test.py ==="
+          echo "=== 2. Run test_cases ==="
           (cd test_cases && python test.py)
-          echo "=== Run test2.py ==="
           (cd test_cases && python test2.py)
+          echo "=== 3. Run demo/SVFIR.py ==="
+          (cd demo && python SVFIR.py input.ll)
+          echo "=== 4. Run official demo Jupyter Notebooks ==="
+          cd demo
+          for nb in $(find . -name "*.ipynb"); do
+            echo "Executing $nb..."
+            jupyter nbconvert --to notebook --execute "$nb" --stdout > /dev/null
+          done
 
   test-ubuntu-rtti:
     name: Ubuntu 24.04 (Baseline Custom LLVM - RTTI ON)
@@ -97,7 +102,8 @@ jobs:
         run: |
           python3 -m venv .venv
           source .venv/bin/activate
-          python -m pip install -U pip pybind11 setuptools wheel build
+          python -m pip install -U pip pybind11 setuptools wheel build notebook nbconvert nbclient ipykernel
+          python -m ipykernel install --user --name python3
           export PYBIND11_DIR=$(python -m pybind11 --cmakedir)
           export SVF_DIR="$PWD/SVF"
           export LLVM_DIR="$PWD/SVF/llvm-21.1.0.obj"
@@ -105,16 +111,23 @@ jobs:
           python -m build --wheel
           ls -la dist/
 
-      - name: Install Wheel & Run Tests
+      - name: Install Wheel & Run Full Test Suite
         run: |
           source .venv/bin/activate
           pip install dist/*.whl
-          echo "=== Test import outside repo root ==="
+          echo "=== 1. Test import outside repo root ==="
           (cd /tmp && python -c "import pysvf; print('Successfully imported RTTI pysvf!'); print('Pysvf path:', pysvf.__file__)")
-          echo "=== Run test.py ==="
+          echo "=== 2. Run test_cases ==="
           (cd test_cases && python test.py)
-          echo "=== Run test2.py ==="
           (cd test_cases && python test2.py)
+          echo "=== 3. Run demo/SVFIR.py ==="
+          (cd demo && python SVFIR.py input.ll)
+          echo "=== 4. Run official demo Jupyter Notebooks ==="
+          cd demo
+          for nb in $(find . -name "*.ipynb"); do
+            echo "Executing $nb..."
+            jupyter nbconvert --to notebook --execute "$nb" --stdout > /dev/null
+          done
 
   test-macos:
     name: macOS 14 (Homebrew LLVM - RTTI ON)
@@ -148,7 +161,8 @@ jobs:
         run: |
           python3 -m venv .venv
           source .venv/bin/activate
-          python -m pip install -U pip pybind11 setuptools wheel build
+          python -m pip install -U pip pybind11 setuptools wheel build notebook nbconvert nbclient ipykernel
+          python -m ipykernel install --user --name python3
           export PYBIND11_DIR=$(python -m pybind11 --cmakedir)
           export SVF_DIR="$PWD/SVF"
           export LLVM_DIR="$LLVM_DIR"
@@ -156,9 +170,16 @@ jobs:
           python -m build --wheel
           ls -la dist/
           pip install dist/*.whl
-          echo "=== Test import outside repo root ==="
+          echo "=== 1. Test import outside repo root ==="
           (cd /tmp && python -c "import pysvf; print('Successfully imported pysvf on macOS!'); print('Pysvf path:', pysvf.__file__)")
-          echo "=== Run test.py ==="
+          echo "=== 2. Run test_cases ==="
           (cd test_cases && python test.py)
-          echo "=== Run test2.py ==="
           (cd test_cases && python test2.py)
+          echo "=== 3. Run demo/SVFIR.py ==="
+          (cd demo && python SVFIR.py input.ll)
+          echo "=== 4. Run official demo Jupyter Notebooks ==="
+          cd demo
+          for nb in $(find . -name "*.ipynb"); do
+            echo "Executing $nb..."
+            jupyter nbconvert --to notebook --execute "$nb" --stdout > /dev/null
+          done
