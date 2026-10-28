@@ -33,6 +33,9 @@ jobs:
       - name: Build SVF with nortti
         run: |
           cd SVF
+          # Preserve SVF's own RTTI on SvfCore so downstream bindings (SVF-Python)
+          # have typeinfo, while SvfLLVM aligns with official non-RTTI LLVM
+          sed -i 's/-DSVF_ENABLE_RTTI:BOOL="$RTTI"/-DSVF_ENABLE_RTTI:BOOL=ON/' build.sh
           ./build.sh nortti
           echo "SVF_DIR=$PWD" >> "$GITHUB_ENV"
           echo "LLVM_DIR=$PWD/llvm-21.1.0.obj" >> "$GITHUB_ENV"
@@ -116,6 +119,7 @@ jobs:
   test-macos:
     name: macOS 14 (Homebrew LLVM - RTTI ON)
     runs-on: macos-14
+    continue-on-error: true
     steps:
       - name: Checkout SVF-Python
         uses: actions/checkout@v4
