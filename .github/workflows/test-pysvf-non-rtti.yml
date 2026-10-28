@@ -53,6 +53,9 @@ jobs:
       - name: Install Wheel & Run Tests
         run: |
           source .venv/bin/activate
+          if [ -d "$LLVM_DIR/lib/x86_64-unknown-linux-gnu" ]; then
+            export LD_LIBRARY_PATH="$LLVM_DIR/lib/x86_64-unknown-linux-gnu:${LD_LIBRARY_PATH:-}"
+          fi
           pip install dist/*.whl
           echo "=== Test import outside repo root ==="
           (cd /tmp && python -c "import pysvf; print('Successfully imported non-RTTI pysvf!'); print('Pysvf path:', pysvf.__file__)")

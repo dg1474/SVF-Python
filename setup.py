@@ -95,8 +95,6 @@ class CMakeBuild(build_ext):
         if platform.system() == "Darwin":
             subprocess.run(["install_name_tool", "-change", "libz3.dylib", "@rpath/libz3.dylib", so_target], check=True)
 
-        
-
 
         # if pysvf/SVF/Release-build exist, remove
         if os.path.exists(os.path.join(self.build_lib, "pysvf", "SVF")):
@@ -127,9 +125,16 @@ class CMakeBuild(build_ext):
 
         # Both the libraries and tools must find dependencies inside the wheel.
         if platform.system() == "Linux":
+            dest_lib = os.path.join(self.build_lib, "pysvf", "SVF", "Release-build", "lib")
+            for triple in ["x86_64-unknown-linux-gnu", "aarch64-unknown-linux-gnu"]:
+                triple_dir = os.path.join(LLVM_DIR, "lib", triple)
+                if os.path.isdir(triple_dir):
+                    for f in glob.glob(os.path.join(triple_dir, "libc++*.so*")):
+                        shutil.copy2(f, dest_lib)
             svf_build = os.path.join(self.build_lib, "pysvf", "SVF", "Release-build")
             for binary in glob.glob(os.path.join(svf_build, "lib", "*.so*")) + glob.glob(os.path.join(svf_build, "bin", "*")):
                 subprocess.run(["patchelf", "--set-rpath", "$ORIGIN/../lib:$ORIGIN/../../z3.obj/bin:$ORIGIN/../../z3.obj/lib", binary], check=True)
+            subprocess.run(["patchelf", "--set-rpath", "$ORIGIN/SVF/Release-build/lib:$ORIGIN/SVF/z3.obj/bin:$ORIGIN/SVF/z3.obj/lib", so_target], check=True)
 
         # cp -rf $GITHUB_WORKSPACE/z3/bin .build_lib/pysvf/z3/bin
         # if exist bin or lib
@@ -153,4 +158,3 @@ setup(
     include_package_data=True,
     zip_safe=False,
 )
-
