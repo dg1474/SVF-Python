@@ -67,15 +67,16 @@ class CMakeBuild(build_ext):
         ]
 
         if platform.system() == "Linux":
-            libcxx_dir = os.path.join(LLVM_DIR, "include", "c++", "v1")
             clang_bin = os.path.join(LLVM_DIR, "bin", "clang")
             clangxx_bin = os.path.join(LLVM_DIR, "bin", "clang++")
-            if os.path.isdir(libcxx_dir) and os.path.isfile(clangxx_bin):
+            if os.path.isfile(clangxx_bin):
                 cmake_args.extend([
                     "-DCMAKE_C_COMPILER=" + clang_bin,
                     "-DCMAKE_CXX_COMPILER=" + clangxx_bin,
-                    "-DCMAKE_CXX_FLAGS=-stdlib=libc++",
                 ])
+            libcxx_dir = os.path.join(LLVM_DIR, "include", "c++", "v1")
+            if os.path.isdir(libcxx_dir):
+                cmake_args.append("-DCMAKE_CXX_FLAGS=-stdlib=libc++")
                 link_flags = ["-stdlib=libc++"]
                 for triple in ["x86_64-unknown-linux-gnu", "aarch64-unknown-linux-gnu"]:
                     triple_dir = os.path.join(LLVM_DIR, "lib", triple)

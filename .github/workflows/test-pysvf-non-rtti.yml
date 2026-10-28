@@ -70,7 +70,7 @@ jobs:
           cd demo
           for nb in $(find . -name "*.ipynb"); do
             echo "Executing $nb..."
-            jupyter nbconvert --to notebook --execute "$nb" --stdout > /dev/null
+            jupyter nbconvert --to notebook --execute --ExecutePreprocessor.timeout=120 "$nb" --stdout > /dev/null
           done
 
   test-ubuntu-rtti:
@@ -128,7 +128,7 @@ jobs:
           cd demo
           for nb in $(find . -name "*.ipynb"); do
             echo "Executing $nb..."
-            jupyter nbconvert --to notebook --execute "$nb" --stdout > /dev/null
+            jupyter nbconvert --to notebook --execute --ExecutePreprocessor.timeout=120 "$nb" --stdout > /dev/null
           done
 
   test-macos:
@@ -184,5 +184,5 @@ jobs:
           cd demo
           for nb in $(find . -name "*.ipynb"); do
             echo "Executing $nb..."
-            jupyter nbconvert --to notebook --execute "$nb" --stdout > /dev/null
+            jupyter nbconvert --to notebook --execute --ExecutePreprocessor.timeout=120 "$nb" --stdout > /dev/null
           done
