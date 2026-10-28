@@ -133,8 +133,14 @@ class CMakeBuild(build_ext):
                         shutil.copy2(f, dest_lib)
             svf_build = os.path.join(self.build_lib, "pysvf", "SVF", "Release-build")
             for binary in glob.glob(os.path.join(svf_build, "lib", "*.so*")) + glob.glob(os.path.join(svf_build, "bin", "*")):
-                subprocess.run(["patchelf", "--set-rpath", "$ORIGIN/../lib:$ORIGIN/../../z3.obj/bin:$ORIGIN/../../z3.obj/lib", binary], check=True)
-            subprocess.run(["patchelf", "--set-rpath", "$ORIGIN/SVF/Release-build/lib:$ORIGIN/SVF/z3.obj/bin:$ORIGIN/SVF/z3.obj/lib", so_target], check=True)
+                try:
+                    subprocess.run(["patchelf", "--set-rpath", "$ORIGIN/../lib:$ORIGIN/../../z3.obj/bin:$ORIGIN/../../z3.obj/lib", binary], check=True, stderr=subprocess.DEVNULL)
+                except Exception:
+                    pass
+            try:
+                subprocess.run(["patchelf", "--set-rpath", "$ORIGIN/SVF/Release-build/lib:$ORIGIN/SVF/z3.obj/bin:$ORIGIN/SVF/z3.obj/lib", so_target], check=True, stderr=subprocess.DEVNULL)
+            except Exception:
+                pass
 
         # cp -rf $GITHUB_WORKSPACE/z3/bin .build_lib/pysvf/z3/bin
         # if exist bin or lib
