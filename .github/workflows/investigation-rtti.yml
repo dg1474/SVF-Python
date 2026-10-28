@@ -1,0 +1,184 @@
+name: RTTI & macOS / SVF-Python Investigation
+
+on:
+  push:
+    branches:
+      - main
+      - investigation/**
+  workflow_dispatch:
+
+jobs:
+  test-macos:
+    name: 1. macOS Homebrew (RTTI & SVF-Python)
+    runs-on: macos-14
+    steps:
+      - name: Checkout SVF-Python
+        uses: actions/checkout@v4
+
+      - name: Install system dependencies & LLVM 21
+        run: |
+          brew install git curl cmake node doxygen graphviz llvm@21
+          LLVM_PREFIX="$(brew --prefix llvm@21)"
+          echo "LLVM_DIR=$LLVM_PREFIX" >> "$GITHUB_ENV"
+          echo "PATH=$LLVM_PREFIX/bin:$PATH" >> "$GITHUB_ENV"
+
+      - name: Verify Homebrew LLVM RTTI status
+        run: |
+          echo "=== LLVM Version & RTTI Status ==="
+          llvm-config --version
+          echo "LLVM has RTTI: $(llvm-config --has-rtti)"
+          echo "=== Check LLVMConfig.cmake for RTTI ==="
+          grep -rn "LLVM_ENABLE_RTTI" "$LLVM_DIR"/lib/cmake/llvm/ || true
+
+      - name: Clone SVF (PR 1936 branch)
+        run: |
+          git clone --branch feat/support-official-llvm-no-rtti https://github.com/dg1474/SVF.git SVF
+          cd SVF
+          echo "SVF commit:"
+          git log -n 1 --oneline
+
+      - name: Build SVF on macOS
+        run: |
+          cd SVF
+          ./build.sh
+          echo "SVF_DIR=$PWD" >> "$GITHUB_ENV"
+          echo "Z3_DIR=$PWD/z3.obj" >> "$GITHUB_ENV"
+
+      - name: Build & Test SVF-Python on macOS
+        run: |
+          python3 -m venv .venv
+          source .venv/bin/activate
+          python -m pip install -U pip pybind11 setuptools wheel build
+          export PYBIND11_DIR=$(python -m pybind11 --cmakedir)
+          export SVF_DIR="$PWD/SVF"
+          export LLVM_DIR="$LLVM_DIR"
+          export Z3_DIR="$PWD/SVF/z3.obj"
+          echo "Building wheel..."
+          python -m build --wheel
+          ls -la dist/
+          pip install dist/*.whl
+          echo "=== Testing pysvf import & tests ==="
+          python -c "import pysvf; print('Successfully imported pysvf on macOS!'); print(dir(pysvf))"
+          if [ -d test_cases ]; then
+            cd test_cases
+            python test.py || true
+          fi
+
+  test-ubuntu-baseline:
+    name: 2. Ubuntu Baseline (Custom LLVM with RTTI=ON)
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout SVF-Python
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y git curl build-essential cmake g++ nodejs doxygen graphviz lcov libncurses-dev libtinfo6 libzstd-dev libffi-dev zlib1g-dev python3-dev python3-venv patchelf
+
+      - name: Clone SVF (PR 1936 branch)
+        run: |
+          git clone --branch feat/support-official-llvm-no-rtti https://github.com/dg1474/SVF.git SVF
+          cd SVF
+          git log -n 1 --oneline
+
+      - name: Build SVF with RTTI=ON (custom prebuilt)
+        run: |
+          cd SVF
+          ./build.sh rtti
+          echo "SVF_DIR=$PWD" >> "$GITHUB_ENV"
+          echo "LLVM_DIR=$PWD/llvm-21.1.0.obj" >> "$GITHUB_ENV"
+          echo "Z3_DIR=$PWD/z3.obj" >> "$GITHUB_ENV"
+
+      - name: Build & Test SVF-Python with RTTI=ON
+        run: |
+          python3 -m venv .venv
+          source .venv/bin/activate
+          python -m pip install -U pip pybind11 setuptools wheel build
+          export PYBIND11_DIR=$(python -m pybind11 --cmakedir)
+          export SVF_DIR="$PWD/SVF"
+          export LLVM_DIR="$PWD/SVF/llvm-21.1.0.obj"
+          export Z3_DIR="$PWD/SVF/z3.obj"
+          echo "Building wheel with RTTI=ON..."
+          python -m build --wheel
+          pip install dist/*.whl
+          echo "Testing pysvf..."
+          python -c "import pysvf; print('Baseline pysvf imported successfully!')"
+          cd test_cases
+          python test.py
+          python test2.py
+
+  test-ubuntu-nortti:
+    name: 3. Ubuntu Non-RTTI (Official Upstream LLVM)
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout SVF-Python
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y git curl build-essential cmake g++ nodejs doxygen graphviz lcov libncurses-dev libtinfo6 libzstd-dev libffi-dev zlib1g-dev python3-dev python3-venv patchelf
+
+      - name: Clone SVF (PR 1936 branch)
+        run: |
+          git clone --branch feat/support-official-llvm-no-rtti https://github.com/dg1474/SVF.git SVF
+          cd SVF
+          git log -n 1 --oneline
+
+      - name: Build SVF with nortti (Official Upstream LLVM)
+        run: |
+          cd SVF
+          ./build.sh nortti
+          echo "SVF_DIR=$PWD" >> "$GITHUB_ENV"
+          echo "LLVM_DIR=$PWD/llvm-21.1.0.obj" >> "$GITHUB_ENV"
+          echo "Z3_DIR=$PWD/z3.obj" >> "$GITHUB_ENV"
+
+      - name: Check Official LLVM RTTI Status
+        run: |
+          echo "=== Official LLVM Version & RTTI ==="
+          $LLVM_DIR/bin/llvm-config --version
+          echo "LLVM has RTTI: $($LLVM_DIR/bin/llvm-config --has-rtti)"
+          grep -rn "LLVM_ENABLE_RTTI" "$LLVM_DIR"/lib/cmake/llvm/ || true
+
+      - name: Step 3A - Test Unpatched SVF-Python CMake (Expected FATAL_ERROR)
+        run: |
+          python3 -m venv .venv
+          source .venv/bin/activate
+          python -m pip install -U pip pybind11 setuptools wheel build
+          export PYBIND11_DIR=$(python -m pybind11 --cmakedir)
+          export SVF_DIR="$PWD/SVF"
+          export LLVM_DIR="$PWD/SVF/llvm-21.1.0.obj"
+          export Z3_DIR="$PWD/SVF/z3.obj"
+          echo "Attempting to build wheel without modifying CMakeLists.txt..."
+          if python -m build --wheel; then
+            echo "::error::UNEXPECTED SUCCESS: CMake should have failed because LLVM RTTI is disabled!"
+            exit 1
+          else
+            echo "✅ CONFIRMED: CMake correctly failed with FATAL_ERROR as expected when LLVM_ENABLE_RTTI is OFF."
+          fi
+
+      - name: Step 3B - Bypass CMake Check & Test pybind11 compilation with non-RTTI
+        run: |
+          source .venv/bin/activate
+          export PYBIND11_DIR=$(python -m pybind11 --cmakedir)
+          export SVF_DIR="$PWD/SVF"
+          export LLVM_DIR="$PWD/SVF/llvm-21.1.0.obj"
+          export Z3_DIR="$PWD/SVF/z3.obj"
+          
+          echo "Patching CMakeLists.txt to bypass FATAL_ERROR..."
+          sed -i 's/message(FATAL_ERROR "LLVM was not built with RTTI enabled/message(WARNING "BYPASS TEST: LLVM was not built with RTTI enabled/' CMakeLists.txt
+          
+          echo "Attempting wheel compilation..."
+          if python -m build --wheel; then
+            echo "Wheel built! Installing and testing runtime..."
+            pip install dist/*.whl
+            python -c "import pysvf; print('Imported non-RTTI pysvf successfully!')"
+            cd test_cases
+            echo "Running test.py..."
+            python test.py
+            echo "Running test2.py..."
+            python test2.py
+          else
+            echo "❌ CONFIRMED: Compilation or linking failed when LLVM RTTI is disabled."
+          fi
