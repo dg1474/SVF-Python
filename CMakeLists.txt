@@ -39,11 +39,11 @@ message(STATUS "LLVM STATUS:
   Dynamic lib   ${LLVM_LINK_LLVM_DYLIB}"
 )
 
-# Support building with or without RTTI
+# Support building against LLVM distributions with or without RTTI.
+# Note: pysvf itself retains C++ RTTI for pybind11's internal type registration
+# and links seamlessly against both RTTI-enabled and non-RTTI SVF/LLVM builds.
 if(NOT LLVM_ENABLE_RTTI)
-    message(STATUS "LLVM RTTI is disabled; compiling pysvf with -fno-rtti")
-    add_compile_options("$<$<COMPILE_LANGUAGE:CXX>:-fno-rtti>")
-    add_compile_definitions(PYBIND11_NO_RTTI)
+    message(STATUS "LLVM RTTI is disabled upstream; building pysvf against non-RTTI SVF/LLVM.")
 endif()
 
 if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")

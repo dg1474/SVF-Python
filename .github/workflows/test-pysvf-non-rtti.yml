@@ -54,8 +54,8 @@ jobs:
         run: |
           source .venv/bin/activate
           pip install dist/*.whl
-          echo "=== Test import outside of repo root ==="
-          (cd /tmp && python -c "import pysvf; print('Successfully imported non-RTTI pysvf!'); print('Pysvf version:', pysvf.__file__)")
+          echo "=== Test import outside repo root ==="
+          (cd /tmp && python -c "import pysvf; print('Successfully imported non-RTTI pysvf!'); print('Pysvf path:', pysvf.__file__)")
           echo "=== Run test.py ==="
           (cd test_cases && python test.py)
           echo "=== Run test2.py ==="
@@ -103,8 +103,8 @@ jobs:
         run: |
           source .venv/bin/activate
           pip install dist/*.whl
-          echo "=== Test import outside of repo root ==="
-          (cd /tmp && python -c "import pysvf; print('Successfully imported RTTI pysvf!'); print('Pysvf version:', pysvf.__file__)")
+          echo "=== Test import outside repo root ==="
+          (cd /tmp && python -c "import pysvf; print('Successfully imported RTTI pysvf!'); print('Pysvf path:', pysvf.__file__)")
           echo "=== Run test.py ==="
           (cd test_cases && python test.py)
           echo "=== Run test2.py ==="
@@ -153,4 +153,5 @@ jobs:
           (cd /tmp && python -c "import pysvf; print('Successfully imported pysvf on macOS!'); print('Pysvf path:', pysvf.__file__)")
           echo "=== Run test.py ==="
           (cd test_cases && python test.py)
+          echo "=== Run test2.py ==="
           (cd test_cases && python test2.py)
