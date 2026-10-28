@@ -66,6 +66,7 @@ jobs:
           echo "=== 3. Run demo/SVFIR.py ==="
           (cd demo && python SVFIR.py input.ll)
           echo "=== 4. Run official demo Jupyter Notebooks ==="
+          sed -i 's/!pip install pysvf/# !pip install pysvf/g' demo/*.ipynb
           cd demo
           for nb in $(find . -name "*.ipynb"); do
             echo "Executing $nb..."
@@ -123,6 +124,7 @@ jobs:
           echo "=== 3. Run demo/SVFIR.py ==="
           (cd demo && python SVFIR.py input.ll)
           echo "=== 4. Run official demo Jupyter Notebooks ==="
+          sed -i 's/!pip install pysvf/# !pip install pysvf/g' demo/*.ipynb
           cd demo
           for nb in $(find . -name "*.ipynb"); do
             echo "Executing $nb..."
@@ -178,6 +180,7 @@ jobs:
           echo "=== 3. Run demo/SVFIR.py ==="
           (cd demo && python SVFIR.py input.ll)
           echo "=== 4. Run official demo Jupyter Notebooks ==="
+          sed -i 's/!pip install pysvf/# !pip install pysvf/g' demo/*.ipynb
           cd demo
           for nb in $(find . -name "*.ipynb"); do
             echo "Executing $nb..."
