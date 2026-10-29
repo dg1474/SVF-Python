@@ -69,7 +69,10 @@ class CMakeBuild(build_ext):
         if platform.system() in ["Linux", "Darwin"]:
             clang_bin = os.path.join(LLVM_DIR, "bin", "clang")
             clangxx_bin = os.path.join(LLVM_DIR, "bin", "clang++")
-            if os.path.isfile(clangxx_bin):
+            if not os.path.isfile(clangxx_bin):
+                clang_bin = shutil.which("clang")
+                clangxx_bin = shutil.which("clang++")
+            if clangxx_bin and os.path.isfile(clangxx_bin):
                 cmake_args.extend([
                     "-DCMAKE_C_COMPILER=" + clang_bin,
                     "-DCMAKE_CXX_COMPILER=" + clangxx_bin,

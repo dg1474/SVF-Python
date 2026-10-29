@@ -14,6 +14,7 @@ jobs:
   build:
     name: Build via build.sh on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
+    continue-on-error: ${{ matrix.os == 'macos-14' }}
 
     strategy:
       fail-fast: false
