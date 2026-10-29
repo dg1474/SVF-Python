@@ -2,9 +2,13 @@ name: Run Notebooks using Built pysvf
 
 on:
   push:
-    branches: [main]
+    branches:
+      - main
+      - feat/**
   pull_request:
-    branches: [main]
+    branches:
+      - main
+  workflow_dispatch:
 
 jobs:
   execute-notebooks:
@@ -70,6 +74,7 @@ jobs:
 
       - name: Run notebooks under demo/
         run: |
+          python -c "from pathlib import Path; [p.write_text(p.read_text(encoding='utf-8').replace('!pip install pysvf', '# !pip install pysvf'), encoding='utf-8') for p in Path('demo').glob('*.ipynb')]"
           cd demo
           for nb in $(find . -name "*.ipynb"); do
             echo "Executing $nb..."

@@ -4,6 +4,10 @@ on:
   push:
     branches:
       - main
+      - feat/**
+  pull_request:
+    branches:
+      - main
   workflow_dispatch:
 
 jobs:
@@ -12,6 +16,7 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     strategy:
+      fail-fast: false
       matrix:
         os: [ubuntu-24.04, ubuntu-26.04, macos-14]
 
@@ -40,6 +45,9 @@ jobs:
           brew install git curl cmake node doxygen graphviz
 
       - name: Run build script
+        env:
+          SVF_REPO: https://github.com/dg1474/SVF.git
+          SVF_BRANCH: feat/support-official-llvm-no-rtti
         run: |
           chmod +x ./build.sh
           ./build.sh

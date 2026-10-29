@@ -2,7 +2,12 @@
 
 # Step 1: Clone and build SVF
 if [ -z "$SVF_DIR" ] || [ ! -d "$SVF_DIR" ]; then
-    git clone https://github.com/SVF-tools/SVF
+    SVF_REPO="${SVF_REPO:-https://github.com/SVF-tools/SVF}"
+    if [ -n "$SVF_BRANCH" ]; then
+        git clone --branch "$SVF_BRANCH" "$SVF_REPO" SVF
+    else
+        git clone "$SVF_REPO" SVF
+    fi
     cd SVF
     # shellcheck disable=SC1091
     source build.sh "$@"
