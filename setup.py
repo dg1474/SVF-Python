@@ -66,7 +66,7 @@ class CMakeBuild(build_ext):
             "-DPython3_EXECUTABLE=" + sys.executable,
         ]
 
-        if platform.system() == "Linux":
+        if platform.system() in ["Linux", "Darwin"]:
             clang_bin = os.path.join(LLVM_DIR, "bin", "clang")
             clangxx_bin = os.path.join(LLVM_DIR, "bin", "clang++")
             if os.path.isfile(clangxx_bin):
@@ -74,6 +74,7 @@ class CMakeBuild(build_ext):
                     "-DCMAKE_C_COMPILER=" + clang_bin,
                     "-DCMAKE_CXX_COMPILER=" + clangxx_bin,
                 ])
+        if platform.system() == "Linux":
             libcxx_dir = os.path.join(LLVM_DIR, "include", "c++", "v1")
             if os.path.isdir(libcxx_dir):
                 cmake_args.append("-DCMAKE_CXX_FLAGS=-stdlib=libc++")

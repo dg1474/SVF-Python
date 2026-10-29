@@ -32,9 +32,17 @@ if len(sys.argv) < 2:
     print("Usage: python SVFIR.py [options] <bitcode_file>")
     sys.exit(1)
 
-# Pass bitcode file and quiet option
-bitcode_file = sys.argv[1]
-pysvf.buildSVFModule([bitcode_file, "-stat=false"])
+# Get the pag(SVFIR) from the bitcode file
+sys.argv.extend([
+    "-model-arrays=true",
+    "-pre-field-sensitive=false",
+    "-model-consts=true",
+    "-stat=false"
+])
+
+# Skip the python script name and use the rest of the arguments
+svf_arguments = sys.argv[1:]
+pysvf.buildSVFModule(svf_arguments)
 pag = pysvf.getPAG()
 pag.dump(pag.getModuleIdentifier() + ".pag");
 

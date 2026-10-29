@@ -66,7 +66,7 @@ jobs:
           echo "=== 3. Run demo/SVFIR.py ==="
           (cd demo && python SVFIR.py input.ll)
           echo "=== 4. Run official demo Jupyter Notebooks ==="
-          sed -i 's/!pip install pysvf/# !pip install pysvf/g' demo/*.ipynb
+          python -c "import glob; [open(f, 'w', encoding='utf-8').write(open(f, 'r', encoding='utf-8').read().replace('!pip install pysvf', '# !pip install pysvf')) for f in glob.glob('demo/*.ipynb')]"
           cd demo
           for nb in $(find . -name "*.ipynb"); do
             echo "Executing $nb..."
@@ -124,7 +124,7 @@ jobs:
           echo "=== 3. Run demo/SVFIR.py ==="
           (cd demo && python SVFIR.py input.ll)
           echo "=== 4. Run official demo Jupyter Notebooks ==="
-          sed -i 's/!pip install pysvf/# !pip install pysvf/g' demo/*.ipynb
+          python -c "import glob; [open(f, 'w', encoding='utf-8').write(open(f, 'r', encoding='utf-8').read().replace('!pip install pysvf', '# !pip install pysvf')) for f in glob.glob('demo/*.ipynb')]"
           cd demo
           for nb in $(find . -name "*.ipynb"); do
             echo "Executing $nb..."
@@ -180,7 +180,7 @@ jobs:
           echo "=== 3. Run demo/SVFIR.py ==="
           (cd demo && python SVFIR.py input.ll)
           echo "=== 4. Run official demo Jupyter Notebooks ==="
-          sed -i 's/!pip install pysvf/# !pip install pysvf/g' demo/*.ipynb
+          python -c "import glob; [open(f, 'w', encoding='utf-8').write(open(f, 'r', encoding='utf-8').read().replace('!pip install pysvf', '# !pip install pysvf')) for f in glob.glob('demo/*.ipynb')]"
           cd demo
           for nb in $(find . -name "*.ipynb"); do
             echo "Executing $nb..."
