@@ -22,7 +22,7 @@ jobs:
       - name: Install system dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y cmake gcc g++ clang python3-dev nodejs
+          sudo apt-get install -y cmake gcc g++ clang python3-dev nodejs doxygen graphviz lcov libncurses-dev libtinfo6 libzstd-dev
 
       - name: Set up Python
         uses: actions/setup-python@v4
@@ -38,46 +38,18 @@ jobs:
         run: |
           python -m ipykernel install --user --name python3
 
-      - name: Install svf-lib and set environment variables
+      - name: Build SVF and pysvf via build.sh
+        env:
+          SVF_REPO: https://github.com/dg1474/SVF.git
+          SVF_BRANCH: feat/support-official-llvm-no-rtti
         run: |
-          npm install svf-lib
-          echo "SVF_DIR=$PWD/node_modules/svf-lib/SVF-linux-x86_64" >> $GITHUB_ENV
-          echo "LLVM_DIR=$PWD/node_modules/llvm-21.1.0.obj" >> $GITHUB_ENV
-          echo "Z3_DIR=$PWD/node_modules/z3.obj" >> $GITHUB_ENV
-
-      - name: Get system architecture
-        id: get_arch
-        run: |
-          echo "arch=$(uname -m)" >> $GITHUB_OUTPUT
-
-      - name: Build and install pysvf
-        run: |
-          echo "Event: ${{ github.event_name }}"
-          echo "Ref: ${{ github.ref }}"
-          echo "SHA: ${{ github.sha }}"
-          rm -rf build dist pysvf.egg-info  
-          export PYBIND11_DIR=$(python3 -m pybind11 --cmakedir)
-          export CMAKE_BUILD_TYPE=Release
-
-          # Fake version for dev notebook CI
-          sed -i.bak "s/version=.*,/version='0.0.0.dev0',/" setup.py
-
-          if [[ "$(uname)" == "Linux" ]]; then
-            SVF_DIR=${SVF_DIR} LLVM_DIR=${LLVM_DIR} Z3_DIR=${Z3_DIR} PYBIND11_DIR=${PYBIND11_DIR} \
-            python3 -m build --wheel
-          else
-            echo "Unsupported platform"
-            exit 1
-          fi
-
+          chmod +x ./build.sh
+          ./build.sh
           pip install dist/*.whl
 
       - name: Run notebooks under demo/
         run: |
           python -c "from pathlib import Path; [p.write_text(p.read_text(encoding='utf-8').replace('!pip install pysvf', '# !pip install pysvf'), encoding='utf-8') for p in Path('demo').glob('*.ipynb')]"
-          if [ -d "$LLVM_DIR/lib/x86_64-unknown-linux-gnu" ]; then
-            export LD_LIBRARY_PATH="$LLVM_DIR/lib/x86_64-unknown-linux-gnu:${LD_LIBRARY_PATH:-}"
-          fi
           cd demo
           for nb in $(find . -name "*.ipynb"); do
             echo "Executing $nb..."
